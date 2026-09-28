@@ -109,7 +109,14 @@ elif tipo in ("sync-justif", "sync-bajas"):
     viejas = []
     if os.path.exists(p):
         with io.open(p, encoding="utf-8-sig", newline="") as fh:
-            viejas = [r for r in csv.DictReader(fh) if re.sub(r"\D", "", r.get("anio", ""))[:4] not in anios]
+            todas = list(csv.DictReader(fh))
+        viejas = [r for r in todas if re.sub(r"\D", "", r.get("anio", ""))[:4] not in anios]
+        # seguro: si llega mucho menos de lo que ya había para ese año (p. ej. el Excel tenía un filtro
+        # puesto y solo se leyó una parte), no se reemplaza nada
+        antes = len(todas) - len(viejas)
+        if antes >= 100 and len(nuevas) < antes * 0.6:
+            sys.exit("Llegaron %d filas y había %d para %s: parece incompleto (¿filtro puesto en el Excel?). No se reemplaza."
+                     % (len(nuevas), antes, sorted(anios)))
     escribir(archivo, ["cod","anio","semana","motivo"], viejas + nuevas)
     print("  años reemplazados:", sorted(anios))
 elif tipo not in ("carga-soc", "nuevo-soc"):
