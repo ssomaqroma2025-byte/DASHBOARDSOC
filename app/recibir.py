@@ -92,6 +92,11 @@ elif tipo.startswith("sync-") and int(pl.get("total") or 1) > 1:
 if tipo == "sync-personal":
     filas = [f for f in leer_csv_texto(pl.get("csv")) if f.get("cod")]
     if len(filas) < 50: sys.exit("PERSONAL con muy pocas filas (%d); no se reemplaza por seguridad" % len(filas))
+    p = os.path.join(DATA, "personal.csv")
+    if os.path.exists(p):
+        antes = sum(1 for _ in io.open(p, encoding="utf-8")) - 1
+        if len(filas) < antes * 0.8:   # ¿filtro puesto en el Excel? no se borra a la gente que no llegó
+            sys.exit("PERSONAL llegó con %d personas y había %d: parece incompleto. No se reemplaza." % (len(filas), antes))
     escribir("personal.csv", ["cod","planta","gerencia","area","nombre","tipo"], filas)
 
 elif tipo in ("sync-justif", "sync-bajas"):
