@@ -1,0 +1,8 @@
+index.html
+site/
+.estado_cifrado.json
+__pycache__/
+*.pyc
+/data/**
+!/data/**/
+!/data/**/*.enc

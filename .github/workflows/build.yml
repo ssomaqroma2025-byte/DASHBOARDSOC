@@ -1,0 +1,79 @@
+name: Reconstruir dashboard SOC
+# Repositorio público con los datos CIFRADOS (data/**/*.enc). Las claves están en Secrets:
+#   SOC_DATA_KEY (datos) y CLAVE_WEB (clave del dashboard). La web se publica en GitHub Pages.
+on:
+  push:
+    paths:
+      - "data/**"
+      - "app/**"
+  repository_dispatch:
+    types: [nuevo-soc, carga-soc, sync-personal, sync-justif, sync-bajas]
+  schedule:
+    - cron: "0 11 * * *"   # 6:00 am hora Perú: abre la semana nueva aunque nadie haya llenado
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+jobs:
+  # 1) Guardar el dato que mandó Power Automate (cada SOC se guarda siempre, nunca se pierde)
+  guardar:
+    if: github.event_name == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      SOC_DATA_KEY: ${{ secrets.SOC_DATA_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Guardar lo que mandó Power Automate
+        run: |
+          pip install --quiet cryptography
+          git config user.name "robot-soc"
+          git config user.email "robot@users.noreply.github.com"
+          python app/cifra.py abrir
+          python app/recibir.py
+          python app/cifra.py cerrar
+          git add data
+          git commit -q -m "Datos: ${{ github.event.action }} [robot]" || exit 0
+          for i in 1 2 3 4 5 6 7 8; do
+            git push -q && exit 0
+            sleep $((RANDOM % 8 + 2)); git pull -q --rebase
+          done
+          exit 1
+
+  # 2) Armar la web con TODO lo guardado, protegerla con la clave y publicarla en GitHub Pages.
+  #    Si llegan varios SOC juntos, solo corre la publicación más nueva (que ya los incluye a todos).
+  publicar:
+    needs: guardar
+    if: always() && (needs.guardar.result == 'success' || needs.guardar.result == 'skipped')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: publicar
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    env:
+      SOC_DATA_KEY: ${{ secrets.SOC_DATA_KEY }}
+      CLAVE_WEB: ${{ secrets.CLAVE_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Armar la web
+        run: |
+          pip install --quiet cryptography
+          python app/cifra.py abrir
+          python app/build.py
+          python app/cifra.py web
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Publicar en GitHub Pages
+        id: pages
+        uses: actions/deploy-pages@v4
