@@ -63,7 +63,33 @@ elif tipo == "nuevo-soc":
         else:
             print("  detalle: no se reconoció la planta en la respuesta")
 
-elif tipo == "sync-personal":
+elif tipo.startswith("sync-") and int(pl.get("total") or 1) > 1:
+    # Envío en partes (GitHub acepta máx. ~65 000 caracteres por envío). Cada parte se guarda
+    # en data/partes/ y cuando llegan todas las del mismo "lote" se juntan y se aplican.
+    total, parte = int(pl["total"]), int(pl.get("parte") or 1)
+    lote = re.sub(r"[^A-Za-z0-9_-]", "", norm(pl.get("lote")))[:60] or "sinlote"
+    carpeta = os.path.join(DATA, "partes"); os.makedirs(carpeta, exist_ok=True)
+    io.open(os.path.join(carpeta, "%s_%s_%d.csv" % (tipo, lote, parte)), "w", encoding="utf-8").write(norm(pl.get("csv")))
+    tengo = {}
+    for f in os.listdir(carpeta):
+        m = re.match(r"(sync-[a-z]+)_(.+)_(\d+)\.csv$", f)
+        if m and m.group(1) == tipo and m.group(2) == lote: tengo[int(m.group(3))] = f
+    print("  parte %d de %d guardada (tengo %d)" % (parte, total, len(tengo)))
+    if len(tengo) >= total:
+        textos = [io.open(os.path.join(carpeta, tengo[i]), encoding="utf-8").read() for i in sorted(tengo)]
+        cab = textos[0].lstrip("﻿").splitlines()[0]
+        cuerpo = [l for t in textos for l in t.lstrip("﻿").splitlines()[1:] if l.strip()]
+        pl = dict(csv="\n".join([cab] + cuerpo))
+        # se borran las partes de este tipo (esta y lotes viejos incompletos)
+        for f in os.listdir(carpeta):
+            if f.startswith(tipo + "_"):
+                for x in (f, f + ".enc"):
+                    if os.path.exists(os.path.join(carpeta, x)): os.remove(os.path.join(carpeta, x))
+        print("  partes juntas: %d filas" % len(cuerpo))
+    else:
+        sys.exit(0)   # falta alguna parte: queda guardada y se junta cuando llegue la otra
+
+if tipo == "sync-personal":
     filas = [f for f in leer_csv_texto(pl.get("csv")) if f.get("cod")]
     if len(filas) < 50: sys.exit("PERSONAL con muy pocas filas (%d); no se reemplaza por seguridad" % len(filas))
     escribir("personal.csv", ["cod","planta","gerencia","area","nombre","tipo"], filas)
@@ -86,5 +112,5 @@ elif tipo in ("sync-justif", "sync-bajas"):
             viejas = [r for r in csv.DictReader(fh) if re.sub(r"\D", "", r.get("anio", ""))[:4] not in anios]
     escribir(archivo, ["cod","anio","semana","motivo"], viejas + nuevas)
     print("  años reemplazados:", sorted(anios))
-else:
+elif tipo not in ("carga-soc", "nuevo-soc"):
     print("Evento no reconocido; no se guarda nada.")
