@@ -346,7 +346,7 @@ function apply(){
   const qOk=p=>!q||(/^\d+$/.test(q)?String(p.cod)===q:p.nom.toLowerCase().includes(q));
   const rowsBase=ppl.filter(p=>(!ST.ger.size||ST.ger.has(p.ge))&&(!ST.pl.size||ST.pl.has(p.pl))&&(!ST.ar.size||ST.ar.has(p.ar))&&tipoOk(p)&&qOk(p));
   // barras/tabla/total = semanas marcadas ; "por mes" = mes completo (independiente de la semana)
-  const areaAll={}, rec=[]; let TM=0,TF=0,TS=0; const plSoc={},mesA={};
+  const areaAll={}, rec=[]; let TM=0,TF=0,TS=0; const mesA={};
   for(const p of rowsBase){let m=0,f=0,s=0,act=0; const sc=soc[p.cod]||{};
     for(const wo of wsel){if(!activo(p.cod,wo))continue; act++;
       const mw=nmSet[wo]&&nmSet[wo].has(p.cod)?0:p.mb; const cw=sc[wo]||0; m+=mw;s+=cw;f+=Math.min(cw,mw);}
@@ -354,11 +354,20 @@ function apply(){
     (areaAll[p.ar]=areaAll[p.ar]||[0,0]);areaAll[p.ar][0]+=m;areaAll[p.ar][1]+=f;   // barras de área = SIEMPRE todas
     if(selArea.size && !selArea.has(p.ar)) continue;                                  // filtro por barras -> resto de visuales
     rec.push({cod:p.cod,pl:p.pl,ar:p.ar,nom:p.nom,soc:s,meta:m,pct:m>0?Math.round(f/m*100):-1});
-    TM+=m;TF+=f;TS+=s; if(p.pl) plSoc[p.pl]=(plSoc[p.pl]||0)+s;
+    TM+=m;TF+=f;TS+=s;
     for(const wo of wmes){if(!activo(p.cod,wo))continue; const mw=nmSet[wo]&&nmSet[wo].has(p.cod)?0:p.mb; const cw=sc[wo]||0; const w=wMeta[wo]; const mn=w?w.mesN:'—';
       (mesA[mn]=mesA[mn]||[0,0,w?w.mesO:0]);mesA[mn][0]+=mw;mesA[mn][1]+=Math.min(cw,mw);}}
   $('#hSoc').textContent=TS; $('#hSocL').textContent='Total SOC';
-  drawDonut('#donut',plSoc,PAL);
+  // dona por planta: como en el Power BI, siempre muestra TODAS las plantas (con los demás filtros)
+  // y resalta la(s) planta(s) elegida(s), con su % del total
+  const plTot={};
+  for(const p of ppl){
+    if((ST.ger.size&&!ST.ger.has(p.ge))||(ST.ar.size&&!ST.ar.has(p.ar))||!tipoOk(p)||!qOk(p)||!p.pl)continue;
+    if(selArea.size&&!selArea.has(p.ar))continue;
+    const sc=soc[p.cod]||{}; let s=0;
+    for(const wo of wsel){if(activo(p.cod,wo))s+=sc[wo]||0;}
+    plTot[p.pl]=(plTot[p.pl]||0)+s;}
+  drawDonut('#donut',plTot,PAL,ST.pl.size?ST.pl:null);
   const marr=Object.entries(mesA).map(([n,[m,f,o]])=>({n,o,pc:m?f/m*100:0,m})).filter(x=>x.m>0).sort((a,b)=>a.o-b.o);
   $('#mbars').innerHTML=marr.map(x=>`<div class="mbar"><div class="vpc">${Math.round(x.pc)}%</div><div class="vtrack"><div class="vfill" style="height:${Math.max(2,x.pc)}%"></div></div><div class="vlbl">${x.n}</div></div>`).join('')||'<div class="dash">Sin datos.</div>';
   const aarr=Object.entries(areaAll).map(([a,[m,f]])=>({a,pc:m?f/m*100:0,m})).filter(x=>x.m>0&&!EXCL.has((x.a||'').toUpperCase())).sort((a,b)=>b.pc-a.pc);
@@ -370,12 +379,13 @@ function apply(){
   const selTxt=selArea.size?` · filtro: ${[...selArea].join(', ')}`:'';
   $('#tblCount').textContent=`· ${rec.length} personas · ${subLabel()}${selTxt}`;
 }
-function drawDonut(sel,obj,pal){
+function drawDonut(sel,obj,pal,resaltar){
   const ent=Object.entries(obj).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   const total=ent.reduce((s,[,v])=>s+v,0), C=2*Math.PI*45; let off=0; const segs=[],leg=[];
   ent.forEach(([n,v],i)=>{const fr=total?v/total:0;const col=Array.isArray(pal)?pal[i%pal.length]:pal[n]||'#888';
-    segs.push(`<circle r="45" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="18" stroke-dasharray="${(fr*C).toFixed(2)} ${(C-fr*C).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>`);off+=fr*C;
-    leg.push(`<div class="it"><span class="sw" style="background:${col}"></span><span class="n">${esc(n)||'—'}</span><b>${v.toLocaleString('es-PE')}${total?` · ${(fr*100).toFixed(fr<0.1?1:0)}%`:''}</b></div>`);});
+    const op=resaltar&&!resaltar.has(n)?0.25:1;     // planta no elegida = apagada
+    segs.push(`<circle r="45" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="18" opacity="${op}" stroke-dasharray="${(fr*C).toFixed(2)} ${(C-fr*C).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>`);off+=fr*C;
+    leg.push(`<div class="it" style="opacity:${op<1?0.45:1}"><span class="sw" style="background:${col}"></span><span class="n">${esc(n)||'—'}</span><b>${v.toLocaleString('es-PE')}${total?` · ${(fr*100).toFixed(fr<0.1?1:0)}%`:''}</b></div>`);});
   $(sel).innerHTML=`<svg width="112" height="112" viewBox="0 0 120 120" transform="rotate(-90)"><circle r="45" cx="60" cy="60" fill="none" stroke="var(--chip)" stroke-width="18"/>${segs.join('')}</svg><div class="dleg">${leg.join('')||'<span class="n">Sin datos</span>'}</div>`;
 }
 function rowHtml(p){
