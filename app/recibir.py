@@ -95,8 +95,12 @@ if tipo == "sync-personal":
     p = os.path.join(DATA, "personal.csv")
     if os.path.exists(p):
         antes = sum(1 for _ in io.open(p, encoding="utf-8")) - 1
-        if len(filas) < antes * 0.8:   # ¿filtro puesto en el Excel? no se borra a la gente que no llegó
-            sys.exit("PERSONAL llegó con %d personas y había %d: parece incompleto. No se reemplaza." % (len(filas), antes))
+        distintos = len({f["cod"] for f in filas})
+        if distintos < len(filas) * 0.9:   # partes repetidas (p. ej. las 2 partes con la misma mitad)
+            sys.exit("PERSONAL llegó con %d filas pero solo %d códigos distintos: partes repetidas. No se reemplaza."
+                     % (len(filas), distintos))
+        if distintos < antes * 0.8:   # ¿filtro puesto en el Excel? no se borra a la gente que no llegó
+            sys.exit("PERSONAL llegó con %d personas y había %d: parece incompleto. No se reemplaza." % (distintos, antes))
     escribir("personal.csv", ["cod","planta","gerencia","area","nombre","tipo"], filas)
 
 elif tipo in ("sync-justif", "sync-bajas"):
