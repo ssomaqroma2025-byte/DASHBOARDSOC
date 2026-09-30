@@ -20,6 +20,7 @@ jobs:
   guardar:
     if: github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 10      # si GitHub se traba, se corta solo y no bloquea a los demás
     env:
       SOC_DATA_KEY: ${{ secrets.SOC_DATA_KEY }}
     steps:
@@ -49,6 +50,7 @@ jobs:
     needs: guardar
     if: always() && (needs.guardar.result == 'success' || needs.guardar.result == 'skipped')
     runs-on: ubuntu-latest
+    timeout-minutes: 10      # si una publicación se traba, se corta y deja pasar a la siguiente
     concurrency:
       group: publicar
       cancel-in-progress: false
