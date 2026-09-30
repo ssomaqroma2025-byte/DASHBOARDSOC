@@ -74,11 +74,12 @@ async function abrir(clave){
   const html=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(P.n)},key,b64(P.c)));
   document.open();document.write(html);document.close();
 }
-let guardada=null; try{guardada=localStorage.getItem('socClave');}catch(e){}
-if(guardada) abrir(guardada).catch(()=>{try{localStorage.removeItem('socClave');}catch(e){}});
+// clave recordada en este equipo, o la de esta pestaña (el botón Actualizar recarga sin volver a pedirla)
+let guardada=null; try{guardada=localStorage.getItem('socClave')||sessionStorage.getItem('socClaveSesion');}catch(e){}
+if(guardada) abrir(guardada).catch(()=>{try{localStorage.removeItem('socClave');sessionStorage.removeItem('socClaveSesion');}catch(e){}});
 document.getElementById('f').addEventListener('submit',async e=>{e.preventDefault();
   const k=document.getElementById('k').value; document.getElementById('err').textContent='Abriendo…';
-  try{await abrir(k); if(document.getElementById('rec').checked){try{localStorage.setItem('socClave',k);}catch(e){}}}
+  try{try{sessionStorage.setItem('socClaveSesion',k);}catch(e){} await abrir(k); if(document.getElementById('rec').checked){try{localStorage.setItem('socClave',k);}catch(e){}}}
   catch(x){document.getElementById('err').textContent='Clave incorrecta.';}});
 </script>
 """

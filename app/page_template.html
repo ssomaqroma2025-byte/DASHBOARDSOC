@@ -40,6 +40,8 @@
   .head .title{color:var(--brand);font-size:1.35rem;font-weight:800;letter-spacing:.3px}
   .head .upd{font-size:.7rem;color:var(--muted);text-align:center;line-height:1.3}
   .head .upd b{color:var(--brand);display:block;font-size:.78rem}
+  .refresh{margin-top:4px;background:var(--surface);border:1.5px solid var(--brand);color:var(--brand);border-radius:8px;padding:3px 10px;font-size:.72rem;font-weight:700;cursor:pointer}
+  .refresh:hover{background:var(--brand);color:#fff}
   .head .total{text-align:center;border:2px solid var(--brand);border-radius:12px;padding:5px 16px;background:color-mix(in srgb,var(--brand) 8%,transparent)}
   .head .total .v{color:var(--brand);font-size:1.9rem;font-weight:800;line-height:1}
   .head .total .l{font-size:.62rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
@@ -153,7 +155,7 @@
   <div class="head">
     <img class="logo" src="@@IMG_LOGO@@" alt="QROMA">
     <div class="title" id="pTitle">Cumplimiento SOC</div>
-    <div class="upd">ÚLTIMA ACTUALIZACIÓN<b id="upd">—</b></div>
+    <div class="upd">ÚLTIMA ACTUALIZACIÓN<b id="upd">—</b><button type="button" class="refresh" id="btnRefresh" title="Traer los datos más recientes">⟳ Actualizar</button></div>
     <div class="total"><div class="v tnum" id="hSoc">—</div><div class="l" id="hSocL">Total SOC</div></div>
     <div class="spacer"></div>
     <div class="nav">
@@ -565,4 +567,20 @@ function initFilters(){
   renderMS('mes'); renderMS('sem');
 }
 initFilters(); setMode('cump');
+
+// Botón Actualizar: guarda los filtros, trae la versión más nueva (sin caché) y los vuelve a poner
+$('#btnRefresh').addEventListener('click',()=>{
+  try{sessionStorage.setItem('socEstado',JSON.stringify({mode,q:$('#fBuscar').value,selArea:[...selArea],
+    ST:Object.fromEntries(Object.entries(ST).map(([k,v])=>[k,[...v]]))}));}catch(e){}
+  location.replace(location.pathname+'?v='+Date.now());
+});
+(function restaurar(){
+  let e=null; try{e=JSON.parse(sessionStorage.getItem('socEstado')||'null');sessionStorage.removeItem('socEstado');}catch(x){}
+  if(!e)return;
+  for(const k in e.ST){if(ST[k]){ST[k].clear();e.ST[k].forEach(v=>ST[k].add(v));}}
+  FL.forEach(renderMS);                               // quita valores que ya no existan
+  (e.selArea||[]).forEach(a=>selArea.add(a));
+  $('#fBuscar').value=e.q||'';
+  setMode(e.mode||'cump');
+})();
 </script>
