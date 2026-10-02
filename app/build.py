@@ -34,6 +34,8 @@ iy, iw, _ = peru_now.date().isocalendar()
 CUR_WO = iy*100 + iw
 
 # ---------- 1) Padrón ----------
+# Excepción del PBI (META SOC AJUSTADA): estos empleados tienen meta 1 por semana, no 3
+META_1 = {"5671", "11630", "1400"}
 ppl, padset = [], set()
 for r in leer_csv("personal.csv"):
     cod = norm(r.get("cod"))
@@ -42,7 +44,7 @@ for r in leer_csv("personal.csv"):
     tipo = norm(r.get("tipo"))
     ppl.append(dict(cod=cod, pl=norm(r.get("planta")).upper(), ge=norm(r.get("gerencia")),
                     ar=norm(r.get("area")), nom=norm(r.get("nombre")), tp=tipo,
-                    mb=3 if tipo.upper() == "EMPLEADO" else 1))
+                    mb=1 if cod in META_1 else 3 if tipo.upper() == "EMPLEADO" else 1))
 
 # ---------- 2) SOC: historia + nuevos ----------
 hist = json.load(io.open(os.path.join(DATA, "soc_hist.json"), encoding="utf-8"))
