@@ -120,7 +120,7 @@
   .dleg .sw{width:11px;height:11px;border-radius:3px;flex:none}
   .dleg .n{color:var(--muted)} .dleg b{margin-left:auto}
 
-  .vbars{display:flex;align-items:flex-end;justify-content:center;gap:6px;overflow-x:auto;padding:18px 2px 4px}
+  .vbars{display:flex;align-items:flex-end;justify-content:flex-start;gap:6px;overflow-x:auto;padding:18px 2px 4px}
   .vbar{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px;flex:0 0 46px}
   .vbar .vpc{font-size:.68rem;font-weight:700}
   .vbar .vtrack{width:24px;height:118px;background:var(--chip);border-radius:5px;display:flex;align-items:flex-end;overflow:hidden}
@@ -128,12 +128,18 @@
   .vbar .vlbl{font-size:.6rem;color:var(--muted);text-align:center;line-height:1.1;max-width:56px;overflow:hidden;text-overflow:ellipsis;height:2.2em}
   .b-teal{background:var(--teal)} .b-red{background:var(--red)} .b-brand{background:var(--brand)} .b-ins{background:var(--ins)}
   #areaBars .vbar{cursor:pointer}
+  .vbars>:first-child,.mbars>:first-child{margin-left:auto} .vbars>:last-child,.mbars>:last-child{margin-right:auto}
+  .card.full>.cb{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
+  .card.full .vbars{gap:10px;padding:26px 8px 8px}
+  .card.full .vbar{flex:0 0 74px;min-width:74px} .card.full .vbar .vpc{font-size:.85rem}
+  .card.full .vbar .vtrack{width:38px;height:min(52vh,420px)}
+  .card.full .vbar .vlbl{font-size:.72rem;max-width:74px;height:auto;white-space:normal;overflow:visible}
   #areaBars .vbar.sel .vtrack{outline:2px solid var(--ink);outline-offset:1px}
   #areaBars.hassel .vbar:not(.sel){opacity:.4}
   .ch .clr{float:right;cursor:pointer;font-weight:600;font-size:.7rem;background:rgba(255,255,255,.22);padding:1px 8px;border-radius:10px}
   .t-teal{color:var(--teal)} .t-red{color:var(--red)}
 
-  .mbars{display:flex;align-items:flex-end;justify-content:center;gap:9px;overflow-x:auto;padding:12px 2px 2px;min-height:120px}
+  .mbars{display:flex;align-items:flex-end;justify-content:flex-start;gap:9px;overflow-x:auto;padding:12px 2px 2px;min-height:120px}
   .mbar{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:46px}
   .mbar .vtrack{width:34px;height:90px;background:var(--chip);border-radius:5px;display:flex;align-items:flex-end;overflow:hidden}
   .mbar .vfill{width:100%;background:var(--brand);border-radius:5px 5px 0 0}
@@ -195,7 +201,7 @@
         <div class="card"><div class="ch">CUMPLIMIENTO por MES</div><div class="cb"><div class="mbars" id="mbars"></div></div></div>
       </div>
       <div class="col-r">
-        <div class="card"><div class="ch">CUMPLIMIENTO por ÁREA <span id="clrArea" class="clr" hidden>✕ limpiar</span></div><div class="cb"><div class="vbars" id="areaBars"></div></div></div>
+        <div class="card"><div class="ch"><span class="xp" title="Agrandar gráfico">⤢</span>CUMPLIMIENTO por ÁREA <span id="clrArea" class="clr" hidden>✕ limpiar</span></div><div class="cb"><div class="vbars" id="areaBars"></div></div></div>
         <div class="card grow"><div class="ch"><span class="xp" title="Agrandar tabla">⤢</span>DETALLE POR PERSONA <span id="tblCount" style="font-weight:500;opacity:.85"></span></div>
           <div class="tblwrap"><table id="tbl"><thead><tr>
             <th data-k="cod">Código</th><th data-k="pl">Planta</th><th data-k="ar">Área</th><th data-k="nom">Nombres y Apellidos</th>
