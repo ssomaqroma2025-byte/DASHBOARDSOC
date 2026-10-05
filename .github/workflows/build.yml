@@ -6,6 +6,7 @@ on:
     paths:
       - "data/**"
       - "app/**"
+      - ".github/workflows/build.yml"
   repository_dispatch:
     types: [nuevo-soc, carga-soc, sync-personal, sync-justif, sync-bajas]
   schedule:
@@ -52,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10      # si una publicación se traba, se corta y deja pasar a la siguiente
     concurrency:
-      group: publicar
+      group: publicar-2        # grupo nuevo: la run #2110 quedó atascada en cola en el grupo "publicar" y lo bloqueaba
       cancel-in-progress: false
     environment:
       name: github-pages
