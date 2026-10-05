@@ -10,7 +10,7 @@ on:
   repository_dispatch:
     types: [nuevo-soc, carga-soc, sync-personal, sync-justif, sync-bajas]
   schedule:
-    - cron: "0 11 * * *"   # 6:00 am hora Perú: abre la semana nueva aunque nadie haya llenado
+    - cron: "0 * * * *"    # cada hora en punto: la web se arma por reloj, no con cada SOC que entra
   workflow_dispatch:
 permissions:
   contents: write
@@ -46,10 +46,13 @@ jobs:
           exit 1
 
   # 2) Armar la web con TODO lo guardado, protegerla con la clave y publicarla en GitHub Pages.
-  #    Si llegan varios SOC juntos, solo corre la publicación más nueva (que ya los incluye a todos).
+  #    NO se publica con cada repository_dispatch: los SOC entran más rápido de lo que tarda la
+  #    publicación y se cancelaban entre ellas (el sitio llegó a quedarse 2 h sin actualizar).
+  #    Ahora la web se arma por horario (cada hora) y a mano con "Run workflow". El dato igual se
+  #    guarda siempre, porque el job "guardar" sí corre con cada disparo.
   publicar:
     needs: guardar
-    if: always() && (needs.guardar.result == 'success' || needs.guardar.result == 'skipped')
+    if: always() && (needs.guardar.result == 'success' || needs.guardar.result == 'skipped') && github.event_name != 'repository_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10      # si una publicación se traba, se corta y deja pasar a la siguiente
     concurrency:
