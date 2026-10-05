@@ -56,8 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10      # si una publicación se traba, se corta y deja pasar a la siguiente
     concurrency:
-      group: publicar-2        # grupo nuevo: la run #2110 quedó atascada en cola en el grupo "publicar" y lo bloqueaba
-      cancel-in-progress: false
+      group: publicar-3         # grupo nuevo: los anteriores quedaron con corridas zombis en cola
+      cancel-in-progress: true  # la nueva cancela a la vieja: así ya no se acumulan zombis
     environment:
       name: github-pages
       url: ${{ steps.pages.outputs.page_url }}
