@@ -3,7 +3,8 @@
 # El repositorio es PÚBLICO: solo se guarda lo mismo que muestra la web
 # (nada de DNI, respuestas completas ni motivos de justificación como DM).
 #   nuevo-soc      payload {"codigo","fecha","resp"[,"r"]} -> data/nuevos/<resp>.csv (+ data/det_nuevos/<resp>.json resumido)
-#   carga-soc      payload {"csv": "<codigo,fecha,resp>"}     -> data/nuevos/lote-<run>.csv
+#   carga-soc      payload {"items":[{codigo,fecha,resp,r}]} -> data/nuevos/*.csv + data/det_nuevos/*.json
+#                  (sigue aceptando el formato viejo {"csv": "<codigo,fecha,resp>"}, pero sin detalle)
 #   sync-personal  payload {"csv": "<cod,planta,gerencia,area,nombre,tipo>"} -> data/personal.csv
 #   sync-justif    payload {"csv": "<cod,semana,motivo[,anio]>"} -> reemplaza esos años en data/justif_a.csv
 #   sync-bajas     igual que sync-justif, para data/justif_b.csv
@@ -34,12 +35,43 @@ def escribir(nombre, cols, filas):
     print("  %s: %d filas" % (nombre, len(filas)))
 
 if tipo == "carga-soc":
-    filas = [f for f in leer_csv_texto(pl.get("csv")) if f.get("codigo")]
+    # Acepta dos formatos:
+    #   {"csv":   "codigo,fecha,resp\n..."}             -> solo el conteo (como antes)
+    #   {"items": [{"codigo","fecha","resp","r"}, ...]} -> conteo + detalle (Analisis y Comentarios)
+    items = pl.get("items")
+    if isinstance(items, str):
+        try: items = json.loads(items)
+        except ValueError: items = None
+    if not isinstance(items, list):
+        items = [f for f in leer_csv_texto(pl.get("csv")) if f.get("codigo")]
     os.makedirs(os.path.join(DATA, "nuevos"), exist_ok=True)
-    with io.open(os.path.join(DATA, "nuevos", "lote-" + run + ".csv"), "w", encoding="utf-8") as fh:
-        for f in filas:
-            fh.write("%s,%s,%s\n" % (f["codigo"], f.get("fecha", "")[:19], f.get("resp", "")))
-    print("  lote guardado: %d respuestas" % len(filas))
+    n = det = 0
+    for it in items:
+        if not isinstance(it, dict): continue
+        cod   = norm(it.get("codigo"))
+        fecha = norm(it.get("fecha"))[:19]
+        resp  = norm(it.get("resp"))
+        if not cod or not fecha: continue
+        # mismo nombre que usa nuevo-soc: si la misma respuesta llega dos veces se sobrescribe,
+        # asi reenviar un lote nunca duplica SOC.
+        nombre = "r-" + re.sub(r"[^A-Za-z0-9_-]", "", resp)[:80] if resp else "d-%s-%d" % (run, n)
+        io.open(os.path.join(DATA, "nuevos", nombre + ".csv"), "w", encoding="utf-8").write(
+            "%s,%s,%s\n" % (cod, fecha, resp))
+        n += 1
+        # respuesta completa -> se resume igual que en nuevo-soc y se descarta el resto
+        r = it.get("r")
+        if isinstance(r, str):
+            try: r = json.loads(r)
+            except ValueError: r = None
+        if isinstance(r, dict) and r:
+            y = Lector().leer(r)
+            if y:
+                os.makedirs(os.path.join(DATA, "det_nuevos"), exist_ok=True)
+                y.update(codigo=cod, fecha=fecha)
+                json.dump(y, io.open(os.path.join(DATA, "det_nuevos", nombre + ".json"), "w",
+                                     encoding="utf-8"), ensure_ascii=False)
+                det += 1
+    print("  lote guardado: %d respuestas (%d con detalle)" % (n, det))
 
 elif tipo == "nuevo-soc":
     cod, fecha, resp = norm(pl.get("codigo")), norm(pl.get("fecha"))[:19], norm(pl.get("resp"))
