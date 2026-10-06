@@ -3,6 +3,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard SOC</title>
 <style>
+  /* ---- DETALLE POR PERSONA: columnas acomodadas (va primero, gana por especificidad) ---- */
+  #tbl{table-layout:fixed}
+  #tbl th:nth-child(1),#tbl td:nth-child(1){width:9%}
+  #tbl th:nth-child(2),#tbl td:nth-child(2){width:12%}
+  #tbl th:nth-child(3),#tbl td:nth-child(3){width:18%}
+  #tbl th:nth-child(4),#tbl td:nth-child(4){width:27%}
+  #tbl th:nth-child(5),#tbl td:nth-child(5){width:11%}
+  #tbl th:nth-child(6),#tbl td:nth-child(6){width:11%}
+  #tbl th:nth-child(7),#tbl td:nth-child(7){width:12%}
+  #tbl td,#tbl th{overflow:hidden;text-overflow:ellipsis}
+  #tbl th.num,#tbl td.num{text-align:center}
+
   :root{
     --bg:#e9edf1; --surface:#ffffff; --ink:#0f2733; --muted:#5c6b76;
     --line:#dbe2e8; --brand:#118DFF; --brand2:#0f7fbf;
